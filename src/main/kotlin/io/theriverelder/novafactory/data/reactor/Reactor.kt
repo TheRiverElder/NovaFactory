@@ -11,6 +11,7 @@ import io.theriverelder.novafactory.util.io.json.*
 
 class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Tickable, ToJson, Persistent {
 
+    val running: Boolean get() = status.tickable
     var width: Int = width
         private set
     var height: Int = height
@@ -33,11 +34,13 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
 
     // 反应堆内的单元槽，不包括反应堆外壁这个占位单元槽
     private var slots: Array<CellSlot> = emptyArray()
-    val wall: Cell = WallCell()
-    val wallSlot: CellSlot = CellSlot(this, -1, 0, 0, wall)
+    lateinit var wall: Cell
+    lateinit var wallSlot: CellSlot
 
     fun initSlots() {
         slots = Array(width * height) { CellSlot(this, it, it % width, it / height) }
+        wall = WallCell()
+        wallSlot = CellSlot(this, -1, 0, 0, wall)
     }
 
     init {
@@ -76,13 +79,16 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
     fun isValidCellSlotNumber(number: Int): Boolean = number >= 0 && number < slots.size
 
     override fun onTick() {
-        liquidAmount = 6000.0
-        liquidPerCellCache = liquidAmount / slots.size
-        slots.forEach { it.liquidAmount = liquidPerCellCache }
 
-        with(slots.copyOf()) {
-            shuffle()
-            forEach { it.tick() }
+        if (status.tickable) {
+            liquidAmount = 6000.0
+            liquidPerCellCache = liquidAmount / slots.size
+            slots.forEach { it.liquidAmount = liquidPerCellCache }
+
+            with(slots.copyOf()) {
+                shuffle()
+                forEach { it.tick() }
+            }
         }
 
         wall.tick()
@@ -91,37 +97,29 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
 
     // 检查并更新反应堆状态
     protected fun checkStatus() {
+        if (status == ReactorStatus.SLEEPING || status == ReactorStatus.BROKEN) return
         status = if (slots.any { it.temperature >= brokenTemperature }) ReactorStatus.BROKEN
         else if (slots.any { it.temperature >= breakingTemperature }) ReactorStatus.BREAKING
-        else ReactorStatus.WORKING
+        else status
     }
-
-    private val directions = listOf(
-        Vec2(1, 0),
-        Vec2(-1, 0),
-        Vec2(0, 1),
-        Vec2(0, -1),
-        Vec2(1, 1),
-        Vec2(-1, -1),
-        Vec2(1, -1),
-        Vec2(-1, 1),
-    )
 
     // 传播热量
     fun spread(source: CellSlot, key: String, amount: Double) {
-        val part = amount / directions.size
-        for (direction in directions) {
-            var slot = getSlot(source.x + direction.x, source.y + direction.y)
-            var packCancelled = false
+        val part = amount / DIRECTIONS.size
+        for (direction in DIRECTIONS) {
             var rest = part
-            while (slot != null && !packCancelled) {
-                val pack = ValuePack(key, rest, source, slot)
-                pack.send()
-                packCancelled = pack.canceled
-                rest = pack.rest
-                slot = getSlot(slot.x + direction.x, slot.y + direction.y)
+            if (!status.isolated) {
+                var slot = getSlot(source.x + direction.x, source.y + direction.y)
+                var packCancelled = false
+                while (slot != null && !packCancelled) {
+                    val pack = ValuePack(key, rest, source, slot)
+                    pack.send()
+                    packCancelled = pack.canceled
+                    rest = pack.rest
+                    slot = getSlot(slot.x + direction.x, slot.y + direction.y)
+                }
             }
-            wall.accept(ValuePack(key, part, source, wallSlot))
+            wall.accept(ValuePack(key, rest, source, wallSlot))
         }
     }
 
@@ -157,20 +155,15 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
 
     // 根据给定序号，获取其相关的单元槽。如果给定的序号越界，则返回空列表。若反应堆处于隔绝状态则也返回空列表
     fun getRelativeSlots(number: Int): List<CellSlot> {
-        if (number !in 0 until size) return emptyList()
-        if (status == ReactorStatus.BROKEN || status == ReactorStatus.SLEEPING) return emptyList()
+        if (!isValidCellSlotNumber(number)) return emptyList()
+        if (status.isolated) return emptyList()
         val x = number % width
         val y = number / width
-        return setOf(
-            getSlot(x - 1, y),
-            getSlot(x + 1, y),
-            getSlot(x, y - 1),
-            getSlot(x, y + 1),
-        ).filterNotNull()
+        return DIRECTIONS.mapNotNull { getSlot(x + it.x, y + it.y) }
     }
 
     fun getSlots(): Array<CellSlot> {
-        return slots
+        return slots.copyOf()
     }
 
     // 冷却液总量，按体积算
@@ -185,6 +178,8 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
             "width" to JsonNumber(width),
             "height" to JsonNumber(height),
             "slots" to JsonArray(slots.map { it.toJson() }),
+            "status" to JsonNumber(status.ordinal),
+            "running" to JsonBoolean(running),
         )
     }
 
@@ -199,6 +194,8 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
         for ((number, slot) in slots.withIndex()) {
             slot.cell = cells[number]
         }
+        wall.read(json["wall"].obj)
+        status = ReactorStatus.values()[json["status"].number.toInt()]
     }
 
     override fun write(): JsonObject {
@@ -207,19 +204,41 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
             "height" to JsonNumber(height),
             "electricityCache" to JsonNumber(electricityCache),
             "cells" to JsonArray(slots.map { it.cell }.map { it?.write() ?: JSON_NULL }),
+            "wall" to wall.write(),
+            "status" to JsonNumber(status.ordinal),
+        )
+    }
+
+    companion object {
+        private val DIRECTIONS = listOf(
+            Vec2(1, 0),
+            Vec2(-1, 0),
+            Vec2(0, 1),
+            Vec2(0, -1),
+            Vec2(1, 1),
+            Vec2(-1, -1),
+            Vec2(1, -1),
+            Vec2(-1, 1),
         )
     }
 
 }
 
-enum class ReactorStatus {
-    // 反应堆的默认状态，在发电产开始工作时就会转为WORKING
-    SLEEPING,
+enum class ReactorStatus(
+    val isolated: Boolean,
+    val tickable: Boolean,
+) {
+    // 反应堆的默认状态，单元不工作，且单元之间互相隔离
+    SLEEPING(true, false),
+
     // 反应堆正常工作的状态
-    WORKING,
+    WORKING(false, true),
+
     // 反应堆正在融毁，诱发原因是反应堆存在高于融毁中温度的单元。此时反应堆还会继续工作，但是会有警报
-    BREAKING,
-    // 反应堆正在融毁，诱发原因是反应堆存在高于已融毁温度的单元。此时反应堆的单元继续工作，但是都被隔离，且此反应堆永远无法被使用
-    BROKEN,
+    BREAKING(false, true),
+
+    // 反应堆已经融毁。此时反应堆的单元不工作，且都被隔离，且此反应堆永远无法被启用
+    BROKEN(true, false),
     ;
+
 }

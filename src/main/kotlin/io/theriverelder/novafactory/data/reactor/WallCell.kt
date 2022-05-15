@@ -1,6 +1,5 @@
 package io.theriverelder.novafactory.data.reactor
 
-import io.theriverelder.novafactory.builtin.cell.CoolingBlockCell
 import io.theriverelder.novafactory.data.cell.Cell
 import io.theriverelder.novafactory.data.cell.ValuePack
 import io.theriverelder.novafactory.util.io.json.JsonNumber

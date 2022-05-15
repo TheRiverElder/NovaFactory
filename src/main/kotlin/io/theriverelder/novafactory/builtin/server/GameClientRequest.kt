@@ -25,9 +25,9 @@ abstract class GameClientRequest(
     abstract fun process(): ActionResult<String, JsonSerializable?>
 }
 
-class ReactorRequest(
+class ReactorInfoRequest(
     val index: Int,
-) : GameClientRequest("reactor_history") {
+) : GameClientRequest("reactor_info") {
     override fun process(): ActionResult<String, JsonSerializable?> {
         val reactor = Game.factory.reactors.getOrNull(index)
             ?: return ActionResult(false, "No reactor with index $index", null)
@@ -45,16 +45,15 @@ class ReactorHistoryRequest(
     }
 }
 
+class FactoryInfoRequest : GameClientRequest("factory_info") {
+    override fun process(): ActionResult<String, JsonSerializable?> {
+        return ActionResult(true, "", Game.factory.toInfoJson())
+    }
+}
+
 class FactoryHistoryRequest : GameClientRequest("factory_history") {
     override fun process(): ActionResult<String, JsonSerializable?> {
         val factoryHistory = History.factoryHistory
         return ActionResult(true, "", JsonArray(factoryHistory.getSlice().map { it.toJson() }))
-    }
-}
-
-class FactoryInfoRequest : GameClientRequest("factory_history") {
-    override fun process(): ActionResult<String, JsonSerializable?> {
-        val factoryHistory = History.factoryHistory
-        return ActionResult(true, "", Game.factory.toInfoJson())
     }
 }

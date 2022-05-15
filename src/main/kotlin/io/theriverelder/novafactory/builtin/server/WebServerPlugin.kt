@@ -21,7 +21,7 @@ class WebServerPlugin : Plugin {
                 args["reactorIndex"].number.toInt(),
                 args["slotNumber"].number.toInt(),
             ) },
-            CommandHandler("sell") { _, args, _ -> Game.factory.sell(args["shopItemIndex"].number.toInt()) },
+            CommandHandler("sell") { _, args, _ -> Game.factory.sell(args["itemIndex"].number.toInt()) },
             CommandHandler("turn") { _, args, _ ->
                 val newStatus = args["status"].boolean
                 val action = if (newStatus) "开启" else "暂停"
@@ -49,7 +49,7 @@ class WebServerPlugin : Plugin {
                 for (obj in args["requestList"].array.map { it.obj }) {
                     val id = obj["id"].string
                     val req: GameClientRequest? = when (id) {
-                        "reactor" -> ReactorRequest(obj["index"].number.toInt())
+                        "reactor" -> ReactorInfoRequest(obj["index"].number.toInt())
                         "reactor_history" -> ReactorHistoryRequest(obj["index"].number.toInt())
                         "factory_history" -> FactoryHistoryRequest()
                         "factory_info" -> FactoryInfoRequest()

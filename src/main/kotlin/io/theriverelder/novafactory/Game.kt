@@ -77,7 +77,8 @@ object Game : ToJson, Persistent {
     }
 
     override fun read(json: JsonObject) {
-        TODO("Not yet implemented")
+        time = json["time"].number.toLong()
+        factory.read(json["factory"].obj)
     }
 
     override fun write(): JsonObject {
