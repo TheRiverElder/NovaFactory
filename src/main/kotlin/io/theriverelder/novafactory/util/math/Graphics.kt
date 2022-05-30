@@ -5,7 +5,7 @@ import kotlin.math.floor
 import kotlin.math.tanh
 
 fun Double.toHeatColor(upLimit: Double = Double.POSITIVE_INFINITY): Color {
-    val v = ((this / upLimit).limit(0.0, 1.0) * 0xFF).toInt()
+    val v = ((this / upLimit).clamp(0.0, 1.0) * 0xFF).toInt()
     return Color(v, 0, 0xFF - v, 0xFF)
 }
 

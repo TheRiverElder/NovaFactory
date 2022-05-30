@@ -10,6 +10,7 @@ import io.theriverelder.novafactory.ui.createUI
 import io.theriverelder.novafactory.util.event.EventHandler
 import io.theriverelder.novafactory.util.explode
 import io.theriverelder.novafactory.util.math.*
+import io.theriverelder.novafactory.util.wrap
 import java.awt.Color
 import java.awt.Toolkit
 import java.io.File
@@ -46,22 +47,21 @@ fun initializeUI(): RootComponent {
     }
 
     fun onClickSlot(slot: CellSlot, reactorIndex: Int) {
-        if (brush == Brush.CLICK) {
-            watchingCellSlot = slot
-        } else if (brush == Brush.NULL) {
-            val res = Game.factory.use(null, slot)
-            println("${res.succeeded}:${res.message}")
-            if (res.succeeded && res.extra != null) {
-                Game.factory.storage.add(res.extra!!)
+        when (brush) {
+            Brush.CLICK -> watchingCellSlot = slot
+            Brush.NULL -> {
+                val res = wrap { Game.factory.pull(reactorIndex, slot.number) }
+                println("${res.succeeded}:${res.message}")
             }
-        } else {
-            val res = Game.factory.use(storageIndex, reactorIndex, slot.number)
-            println("${res.succeeded}:${res.message}")
+            else -> {
+                val res = wrap { Game.factory.use(storageIndex, reactorIndex, slot.number) }
+                println("${res.succeeded}:${res.message}")
+            }
         }
     }
 
     fun onClickShop(index: Int) {
-        val res = Game.factory.buy(index)
+        val res = wrap { Game.factory.buy(index) }
         println("${res.succeeded}:${res.message}")
     }
 

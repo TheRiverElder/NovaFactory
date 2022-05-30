@@ -23,6 +23,12 @@ class NovaFactory : Tickable, ToJson, Persistent {
             "shop" to JsonArray(shop.map { it.toJson() }),
             "storage" to JsonArray(storage.map { it.toJson() }),
             "levelInfo" to JsonString(Game.level?.getInfo(this) ?: ""),
+            "reactors" to JsonArray(reactors.mapIndexed { index, r -> JsonObject(
+                "index" to JsonNumber(index),
+                "size" to JsonNumber(r.size),
+                "running" to jsonBoolean(r.running),
+                "temperature" to JsonNumber(r.temperature),
+            ) }),
         )
     }
 
@@ -33,6 +39,7 @@ class NovaFactory : Tickable, ToJson, Persistent {
             "reactors" to JsonArray(reactors.map { it.toJson() }),
             "shop" to JsonArray(shop.map { it.toJson() }),
             "storage" to JsonArray(storage.map { it.toJson() }),
+            "levelInfo" to JsonString(Game.level?.getInfo(this) ?: ""),
         )
     }
 
@@ -94,40 +101,42 @@ class NovaFactory : Tickable, ToJson, Persistent {
     val shop: MutableList<CellPrototype> = ArrayList()
     val storage: MutableList<Cell> = ArrayList()
 
-    fun buy(shopItemIndex: Int): ActionResult<String, Unit> {
-        val si = shop.getOrNull(shopItemIndex) ?: return ActionResult(false, "未找到位置在[${shopItemIndex}]的商品", Unit)
-        if (account < si.price) return ActionResult(false, "账户余额不足(${account}/${si.price})", Unit)
+    fun buy(shopItemIndex: Int) {
+        val si = getShopItem(shopItemIndex)
+        if (account < si.price) throw Exception("账户余额不足(${account}/${si.price})")
         account -= si.price
         storage.add(si.create())
-        return ActionResult(true, "成功购买【${si.tip}】*1", Unit)
     }
 
-    fun sell(itemIndex: Int): ActionResult<String, Cell?> {
-        val item = storage.getOrNull(itemIndex) ?: return ActionResult(false, "未找到位置在[${itemIndex}]物品", null)
+    fun sell(storageItemIndex: Int) {
+        val item = getStorageItem(storageItemIndex)
+        storage.removeAt(storageItemIndex)
         account += 1
-        return ActionResult(true, "成功在卖出【${item.javaClass.simpleName}】", item)
     }
 
-    fun use(itemIndex: Int, reactorIndex: Int, slotIndex: Int): ActionResult<String, Unit> {
-        val item = storage.getOrNull(itemIndex) //?: return ActionResult(false, "未找到位置在[${itemIndex}]的物品", Unit)
-        val reactor = reactors.getOrNull(reactorIndex) ?: return ActionResult(false, "未找到位置在[${reactorIndex}]的反应堆", Unit)
-        val slot = reactor.tryGetCellSlot(slotIndex) ?: return ActionResult(false, "未找到位置在[${slotIndex}]的物品槽", Unit)
+    fun use(reactorIndex: Int, slotNumber: Int, storageItemIndex: Int) {
+        val item = getStorageItem(storageItemIndex)
+        val slot = getSlot(reactorIndex, slotNumber)
 
-        if (itemIndex >= 0 && itemIndex < storage.size) {
-            storage.removeAt(itemIndex)
-        }
-        val useRes = use(item, slot)
-        val prevCell = useRes.extra
-        if (useRes.succeeded && prevCell != null) {
-            storage.add(prevCell)
-        }
-        return ActionResult(true, "成功在${reactorIndex}号反应堆${slotIndex}号物品槽使用物品【${item?.javaClass?.simpleName ?: "null"}】", Unit)
-    }
+        if (slot.cell != null) throw Exception("编号为${slotNumber}的单元槽不是空的")
 
-    fun use(item: Cell?, slot: CellSlot): ActionResult<String, Cell?> {
-        val prevCell = slot.cell
         slot.cell = item
-        return ActionResult(true, "成功将其替换为${if (item == null) "<Null>" else "【${item.javaClass.simpleName}】"}", prevCell)
+    }
+
+    fun pull(reactorIndex: Int, slotNumber: Int) {
+        val slot = getSlot(reactorIndex, slotNumber)
+
+        val cell = slot.cell ?: throw Exception("编号为${slotNumber}的单元槽是空的")
+        if (slot.depth > 0) throw Exception("编号为${slotNumber}的单元槽插入深度大于0")
+
+        slot.cell = null
+        storage.add(cell)
+    }
+
+    fun turn(newStatus: Boolean) {
+        val action = if (newStatus) "开启" else "暂停"
+        if (newStatus == Game.running) throw Exception("游戏已经${action}")
+        Game.running = newStatus
     }
 
     // 事件注册
@@ -135,4 +144,21 @@ class NovaFactory : Tickable, ToJson, Persistent {
     val onReactorPostTickHandlers: EventDispatcher<Reactor> = EventDispatcher()
     val onPreTickHandlers: EventDispatcher<NovaFactory> = EventDispatcher()
     val onPostTickHandlers: EventDispatcher<NovaFactory> = EventDispatcher()
+}
+
+fun NovaFactory.getShopItem(index: Int): CellPrototype {
+    return shop.getOrNull(index) ?: throw Exception("未找到位置在[${index}]的商品")
+}
+
+fun NovaFactory.getStorageItem(index: Int): Cell {
+    return storage.getOrNull(index) ?: throw Exception("未在仓库找到位置在[${index}]的物品")
+}
+
+fun NovaFactory.getReactor(index: Int): Reactor {
+    return reactors.getOrNull(index) ?: throw Exception("未找到位置在[${index}]的反应堆")
+}
+
+fun NovaFactory.getSlot(reactorIndex: Int, slotNumber: Int): CellSlot {
+    val reactor = getReactor(reactorIndex)
+    return reactor.tryGetCellSlot(slotNumber) ?: throw Exception("未找到编号为[${slotNumber}]的物品槽")
 }

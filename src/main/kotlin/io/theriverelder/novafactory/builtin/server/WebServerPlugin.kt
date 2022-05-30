@@ -1,10 +1,28 @@
 package io.theriverelder.novafactory.builtin.server
 
+import io.ktor.http.cio.websocket.*
 import io.theriverelder.novafactory.Game
+import io.theriverelder.novafactory.data.reactor.CellSlot
+import io.theriverelder.novafactory.data.reactor.Reactor
 import io.theriverelder.novafactory.entrance.Plugin
 import io.theriverelder.novafactory.util.ActionResult
 import io.theriverelder.novafactory.util.event.EventHandler
 import io.theriverelder.novafactory.util.io.json.*
+import io.theriverelder.novafactory.util.wrap
+import kotlinx.coroutines.runBlocking
+import java.util.Objects
+
+
+fun getReactor(args: JsonObject): Reactor {
+    val reactorIndex = args["reactorIndex"].number.toInt()
+    return Game.factory.reactors.getOrNull(reactorIndex) ?: throw Exception("未找到索引为${reactorIndex}的反应堆")
+}
+
+fun getSlot(args: JsonObject): CellSlot {
+    val reactor = getReactor(args)
+    val slotNumber = args["slotNumber"].number.toInt()
+    return reactor.tryGetCellSlot(slotNumber) ?: throw Exception("未找到编号为${slotNumber}的单元槽")
+}
 
 class WebServerPlugin : Plugin {
     override fun setup() {
@@ -12,44 +30,35 @@ class WebServerPlugin : Plugin {
         Game.onPostTickHandlers.add(StatePushingEventHandler())
     }
 
-    fun initializeServer() {
-
+    private fun initializeServer() {
         listOf(
-            CommandHandler("buy") { _, args, _ -> Game.factory.buy(args["shopItemIndex"].number.toInt()) },
-            CommandHandler("use") { _, args, _ -> Game.factory.use(
-                args["itemIndex"].number.toInt(),
+            CommandHandler("getFactoryInfo") { _, _, _ -> wrap { Game.factory.toInfoJson() } },
+            CommandHandler("getReactorInfo") { _, args, _ -> wrap { getReactor(args).toJson() } },
+            // TBD
+//            CommandHandler("getFactoryHistory") { _, args, _ -> wrap { getReactor(args).toJson() } },
+//            CommandHandler("getReactorHistory") { _, args, _ -> wrap { getReactor(args).toJson() } },
+            CommandHandler("turnFactory") { _, args, _ -> wrap { Game.factory.turn(args["status"].boolean) } },
+            CommandHandler("turnReactor") { _, args, _ -> wrap { getReactor(args).turn(args["status"].boolean) } },
+            CommandHandler("setSlotDepth") { _, args, _ -> wrap { getSlot(args).depth = args["depth"].number.toDouble() } },
+
+            CommandHandler("buy") { _, args, _ -> wrap { Game.factory.buy(args["shopItemIndex"].number.toInt()) } },
+            CommandHandler("use") { _, args, _ -> wrap { Game.factory.use(
                 args["reactorIndex"].number.toInt(),
                 args["slotNumber"].number.toInt(),
-            ) },
-            CommandHandler("sell") { _, args, _ -> Game.factory.sell(args["itemIndex"].number.toInt()) },
-            CommandHandler("turn") { _, args, _ ->
-                val newStatus = args["status"].boolean
-                val action = if (newStatus) "开启" else "暂停"
-                if (newStatus == Game.running) {
-                    ActionResult(false, "游戏已经${action}", Unit)
-                } else {
-                    Game.running = newStatus
-                    if (Game.running == newStatus) ActionResult(true, "游戏${action}成功", Unit)
-                    else ActionResult(false, "游戏${action}失败", Unit)
-                }
-            },
-            CommandHandler("reactorTurn") { _, args, _ ->
-                val reactorIndex = args["reactorIndex"].number.toInt()
-                val reactor = Game.factory.reactors.getOrNull(reactorIndex)
-                if (reactor == null) ActionResult(false, "未找到索引为${reactorIndex}的反应堆", Unit)
-                else {
-                    val newStatus = args["status"].boolean
-                    reactor.turn(newStatus)
-                }
-            },
-            CommandHandler("save") { _, args, _ -> Game.save(args["path"].string) },
-            CommandHandler("load") { _, args, _ -> Game.load(args["path"].string) },
+                args["storageItemIndex"].number.toInt(),
+            ) } },
+            CommandHandler("pull") { _, args, _ -> wrap { Game.factory.pull(args["reactorIndex"].number.toInt(), args["slotNumber"].number.toInt()) } },
+            CommandHandler("sell") { _, args, _ -> wrap { Game.factory.sell(args["storageItemIndex"].number.toInt()) } },
+
+            CommandHandler("save") { _, args, _ -> wrap { Game.save(args["path"].string) } },
+            CommandHandler("load") { _, args, _ -> wrap { Game.load(args["path"].string) } },
+
             CommandHandler("request") { _, args, client ->
                 val requests = ArrayList<GameClientRequest>()
                 for (obj in args["requestList"].array.map { it.obj }) {
                     val id = obj["id"].string
                     val req: GameClientRequest? = when (id) {
-                        "reactor" -> ReactorInfoRequest(obj["index"].number.toInt())
+                        "reactor_info" -> ReactorInfoRequest(obj["index"].number.toInt())
                         "reactor_history" -> ReactorHistoryRequest(obj["index"].number.toInt())
                         "factory_history" -> FactoryHistoryRequest()
                         "factory_info" -> FactoryInfoRequest()
@@ -76,9 +85,10 @@ class StatePushingEventHandler : EventHandler<Game> {
             val pack = JsonObject(
                 "type" to JsonString("state"),
                 "data" to JsonArray(responseList),
-            ).toString()
-//            client.session.send(pack)
-            println(pack)
+            ).toJsonString()
+//            println(pack)
+
+            runBlocking { client.session.send(Frame.Text(pack)) }
         }
     }
 

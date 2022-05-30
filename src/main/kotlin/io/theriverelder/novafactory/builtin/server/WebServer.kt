@@ -33,7 +33,7 @@ object WebServer {
                 call.respondText("Please use WebSocket instead.")
             }
             webSocket("/") {
-                println("client in: $this")
+                println("client in: ${this.hashCode()}")
                 val client = WebClient(this)
                 clients.add(client)
                 for (frame in incoming) {
@@ -45,7 +45,7 @@ object WebServer {
                     }
                 }
                 clients.remove(client)
-                println("client out: $this")
+                println("client out: ${this.hashCode()}")
             }
         }
     }

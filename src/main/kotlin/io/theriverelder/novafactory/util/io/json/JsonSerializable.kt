@@ -1,6 +1,6 @@
 package io.theriverelder.novafactory.util.io.json
 
-import java.lang.StringBuilder
+import kotlin.text.StringBuilder
 
 interface JsonSerializable {
 
@@ -22,3 +22,9 @@ val JsonSerializable.obj: JsonObject
 
 val JsonSerializable.array: JsonArray
     get() = (this as? JsonArray) ?: throw Exception("Is not array")
+
+fun JsonSerializable.toJsonString(): String {
+    val builder = StringBuilder()
+    this.serialize(builder)
+    return builder.toString()
+}

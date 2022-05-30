@@ -12,8 +12,8 @@ fun Double.halfLifeLossDuring(dt: Double): Double = 1 - 0.5.pow(dt / this)
 fun Double.ease0to1(scale: Double = 1.0): Double = tanh(this * scale)
 fun Double.sigmoid(): Double = 1 / (1 + exp(-this))
 
-fun Double.limit(min: Double, max: Double) = this.coerceAtLeast(min).coerceAtMost(max)
-fun Int.limit(min: Int, max: Int) = this.coerceAtLeast(min).coerceAtMost(max)
+fun Double.clamp(min: Double, max: Double) = this.coerceAtLeast(min).coerceAtMost(max)
+fun Int.clamp(min: Int, max: Int) = this.coerceAtLeast(min).coerceAtMost(max)
 
 inline fun <reified T> Array<T>.shuffle(resultSize: Int = size): Array<T> {
     val s = resultSize.coerceAtMost(size)

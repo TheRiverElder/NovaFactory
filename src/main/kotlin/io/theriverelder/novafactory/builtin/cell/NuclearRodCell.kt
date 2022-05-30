@@ -5,8 +5,7 @@ import io.theriverelder.novafactory.data.cell.ValuePack
 import io.theriverelder.novafactory.util.io.json.*
 import io.theriverelder.novafactory.util.math.ease0to1
 import io.theriverelder.novafactory.util.math.halfLifeLossDuring
-import io.theriverelder.novafactory.util.math.limit
-import io.theriverelder.novafactory.util.math.shorten
+import io.theriverelder.novafactory.util.math.clamp
 
 class NuclearRodCell(init: NuclearRodCell.() -> Unit = {}) : Cell() {
 
@@ -14,7 +13,6 @@ class NuclearRodCell(init: NuclearRodCell.() -> Unit = {}) : Cell() {
     public var nuclear: Double = 0.0
     public var nonNuclear: Double = 0.0
     public var radiation: Double = 0.0
-    public var depth: Double = 1.0
 
     override val mass: Double
         get() = nuclear + nonNuclear
@@ -28,7 +26,6 @@ class NuclearRodCell(init: NuclearRodCell.() -> Unit = {}) : Cell() {
             "nuclear" to JsonNumber(nuclear),
             "nonNuclear" to JsonNumber(nonNuclear),
             "radiation" to JsonNumber(radiation),
-            "depth" to JsonNumber(depth),
         )
     }
 
@@ -40,7 +37,6 @@ class NuclearRodCell(init: NuclearRodCell.() -> Unit = {}) : Cell() {
         heat = json["heat"].number.toDouble()
         heatTransferFactor = json["heatTransferFactor"].number.toDouble()
         heatCapacity = json["heatCapacity"].number.toDouble()
-        depth = json["depth"].number.toDouble()
     }
 
     override fun write(): JsonObject {
@@ -53,7 +49,6 @@ class NuclearRodCell(init: NuclearRodCell.() -> Unit = {}) : Cell() {
             "heat" to JsonNumber(heat),
             "heatTransferFactor" to JsonNumber(heatTransferFactor),
             "heatCapacity" to JsonNumber(heatCapacity),
-            "depth" to JsonNumber(depth),
         )
     }
 
@@ -81,9 +76,9 @@ class NuclearRodCell(init: NuclearRodCell.() -> Unit = {}) : Cell() {
 
     override fun onTick() {
         val slot = slot!!
-        val bonusRate = (1.0 - fissionRate) * 1.0e-2 * radiation.ease0to1(1 / 1e15) * depth
+        val bonusRate = (1.0 - fissionRate) * 1.0e-2 * radiation.ease0to1(1 / 1e15) * slot.depth
 //        println("bonusRate = $bonusRate")
-        val rate = (fissionRate + bonusRate).limit(0.0, 1.0)
+        val rate = (fissionRate + bonusRate).clamp(0.0, 1.0)
 //        println(rate)
         val cost = (nuclear * rate).coerceAtLeast(0.0)
         nuclear -= cost

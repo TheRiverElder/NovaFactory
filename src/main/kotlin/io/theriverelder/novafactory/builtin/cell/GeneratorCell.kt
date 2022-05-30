@@ -7,8 +7,7 @@ import io.theriverelder.novafactory.util.io.json.JsonObject
 import io.theriverelder.novafactory.util.io.json.number
 import io.theriverelder.novafactory.util.io.json.unaryPlus
 import io.theriverelder.novafactory.util.math.ease0to1
-import io.theriverelder.novafactory.util.math.halfLifeLossDuring
-import io.theriverelder.novafactory.util.math.limit
+import io.theriverelder.novafactory.util.math.clamp
 
 class GeneratorCell(init: GeneratorCell.() -> Unit = {}) : Cell() {
 
@@ -49,7 +48,7 @@ class GeneratorCell(init: GeneratorCell.() -> Unit = {}) : Cell() {
     override fun onTick() {
         val slot = slot!!
 
-        val rate = (slot.temperature.ease0to1(1 / 3000.0) * convertRate).limit(0.0, 1.0)
+        val rate = (slot.temperature.ease0to1(1 / 3000.0) * convertRate).clamp(0.0, 1.0)
         val dh = (rate * heat).coerceAtLeast(0.0)
         heat -= dh
         slot.reactor.electricityCache += dh

@@ -32,6 +32,9 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
     // 电力缓存
     var electricityCache: Double = 0.0
 
+    // 最高单元温度
+    val temperature: Double get() = if (slots.isEmpty()) 0.0 else slots.maxOf { it.temperature }
+
     // 反应堆内的单元槽，不包括反应堆外壁这个占位单元槽
     private var slots: Array<CellSlot> = emptyArray()
     lateinit var wall: Cell
@@ -48,24 +51,18 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
     }
 
     // 启动或关闭反应堆
-    fun turn(onOrOff: Boolean): ActionResult<String, Unit> {
-        if (onOrOff) {
-            return when (status) {
-                ReactorStatus.SLEEPING -> {
-                    status = ReactorStatus.WORKING
-                    ActionResult(true, "启动成功", Unit)
-                }
-                ReactorStatus.WORKING, ReactorStatus.BREAKING -> ActionResult(false, "反应堆已在运行状态", Unit)
-                ReactorStatus.BROKEN -> ActionResult(false, "反应堆已融毁", Unit)
+    fun turn(onOrOff: Boolean) {
+        status = if (onOrOff) {
+            when (status) {
+                ReactorStatus.SLEEPING -> ReactorStatus.WORKING
+                ReactorStatus.WORKING, ReactorStatus.BREAKING -> throw Exception("反应堆已在运行状态")
+                ReactorStatus.BROKEN -> throw Exception("反应堆已融毁")
             }
         } else {
-            return when (status) {
-                ReactorStatus.SLEEPING -> ActionResult(false, "反应堆已在休眠状态", Unit)
-                ReactorStatus.WORKING, ReactorStatus.BREAKING -> {
-                    status = ReactorStatus.SLEEPING
-                    ActionResult(true, "关闭成功", Unit)
-                }
-                ReactorStatus.BROKEN -> ActionResult(false, "反应堆已融毁", Unit)
+            when (status) {
+                ReactorStatus.SLEEPING -> throw Exception("反应堆已在休眠状态")
+                ReactorStatus.WORKING, ReactorStatus.BREAKING -> ReactorStatus.SLEEPING
+                ReactorStatus.BROKEN -> throw Exception("反应堆已融毁")
             }
         }
     }
@@ -112,7 +109,7 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
                 var slot = getSlot(source.x + direction.x, source.y + direction.y)
                 var packCancelled = false
                 while (slot != null && !packCancelled) {
-                    val pack = ValuePack(key, rest, source, slot)
+                    val pack = ValuePack(key, rest * slot.depth, source, slot)
                     pack.send()
                     packCancelled = pack.canceled
                     rest = pack.rest
@@ -178,8 +175,11 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
             "width" to JsonNumber(width),
             "height" to JsonNumber(height),
             "slots" to JsonArray(slots.map { it.toJson() }),
-            "status" to JsonNumber(status.ordinal),
+            "status" to JsonString(status.name),
             "running" to JsonBoolean(running),
+            "temperature" to JsonNumber(temperature),
+            "breakingTemperature" to JsonNumber(breakingTemperature),
+            "brokenTemperature" to JsonNumber(brokenTemperature),
         )
     }
 
@@ -196,6 +196,8 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
         }
         wall.read(json["wall"].obj)
         status = ReactorStatus.values()[json["status"].number.toInt()]
+        breakingTemperature = json["breakingTemperature"].number.toDouble()
+        brokenTemperature = json["brokenTemperature"].number.toDouble()
     }
 
     override fun write(): JsonObject {
@@ -206,6 +208,8 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
             "cells" to JsonArray(slots.map { it.cell }.map { it?.write() ?: JSON_NULL }),
             "wall" to wall.write(),
             "status" to JsonNumber(status.ordinal),
+            "breakingTemperature" to JsonNumber(breakingTemperature),
+            "brokenTemperature" to JsonNumber(brokenTemperature),
         )
     }
 

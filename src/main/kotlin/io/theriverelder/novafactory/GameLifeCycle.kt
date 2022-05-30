@@ -6,7 +6,7 @@ import java.util.TimerTask
 
 object GameLifeCycle {
 
-    public var period: Long = 50
+    public var period: Long = 500
 
     public var running: Boolean = false
         private set

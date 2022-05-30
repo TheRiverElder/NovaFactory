@@ -8,8 +8,7 @@ import io.theriverelder.novafactory.interfaces.Tickable
 import io.theriverelder.novafactory.util.io.json.*
 import io.theriverelder.novafactory.util.math.ease0to1
 import io.theriverelder.novafactory.util.math.isNotNaNOr
-import io.theriverelder.novafactory.util.math.limit
-import io.theriverelder.novafactory.util.math.toFixed
+import io.theriverelder.novafactory.util.math.clamp
 
 class CellSlot(
     val reactor: Reactor,
@@ -27,7 +26,12 @@ class CellSlot(
         }
 
     val temperature: Double
-        get() = (heat + (cell?.heat ?: 0.0))/((mass + (cell?.mass ?: 0.0)) * heatCapacity)
+        get() {
+            val h = heat + (cell?.heat ?: 0.0)
+            if (h == 0.0) return 0.0
+            val m = mass + (cell?.mass ?: 0.0)
+            return if (mass == 0.0) Double.POSITIVE_INFINITY else h / m * heatCapacity
+        }
 
     override var heat: Double
         get() = cell?.heat ?: 0.0
@@ -45,6 +49,9 @@ class CellSlot(
 
     override val heatCapacity: Double
         get() = cell?.heatCapacity ?: 1.0
+
+    // 插入的深度，一般作用于燃料棒，范围从0%到100%，只有插入的部分会参与反应
+    var depth: Double = 1.0
 
     var liquidAmount: Double = 0.0
 
@@ -88,7 +95,7 @@ class CellSlot(
     fun spreadHeat() {
         cell ?: return
 
-        val lostRate = (heatTransferFactor * 0.3 * temperature.ease0to1(1 / 1.0e3)).limit(0.0, 1.0)
+        val lostRate = (heatTransferFactor * 0.3 * temperature.ease0to1(1 / 1.0e3)).clamp(0.0, 1.0)
 //        val lostRate = 1.0
         val lostHeat = heat * lostRate
 //        val id = cell!!.javaClass.simpleName
@@ -110,6 +117,7 @@ class CellSlot(
             "y" to JsonNumber(y),
             "temperature" to JsonNumber(temperature.isNotNaNOr(0.0)),
             "cell" to (cell?.toJson() ?: JSON_NULL),
+            "depth" to JsonNumber(depth),
         )
     }
 
