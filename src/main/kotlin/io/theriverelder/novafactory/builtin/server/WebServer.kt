@@ -15,7 +15,7 @@ object WebServer {
 
     val REG_COMMAND_HANDLER = Registry<String, CommandHandler> { it.head }
 
-    val clients = HashSet<WebClient>()
+    val clients = HashSet<WebSocketServerSession>()
     lateinit var originalServer: ApplicationEngine
 
     fun start(port: Int) {
@@ -34,17 +34,16 @@ object WebServer {
             }
             webSocket("/") {
                 println("client in: ${this.hashCode()}")
-                val client = WebClient(this)
-                clients.add(client)
+                clients.add(this)
                 for (frame in incoming) {
                     val str = frame.data.decodeToString()
-                    println(str)
+//                    println(str)
                     val json = deserialize(StringReader(str))
                     if (json != null) {
-                        handleCommand(json.obj, client)
+                        handleCommand(json.obj)
                     }
                 }
-                clients.remove(client)
+                clients.remove(this)
                 println("client out: ${this.hashCode()}")
             }
         }
@@ -64,20 +63,23 @@ object WebServer {
     }
 
     suspend fun broadcast(string: String) {
-        clients.forEach { it.session.send(string) }
+        clients.forEach { it.send(string) }
     }
 
-    suspend fun handleCommand(json: JsonObject, client: WebClient) {
+    suspend fun handleCommand(json: JsonObject) {
+        val clientId = json["clientId"].number
         val head = json["head"].string
         val args = json["args"].obj
 
         val handler = REG_COMMAND_HANDLER.tryGet(head) ?: throw Exception("未能处理命令：$head")
 
-        val res: ActionResult<String, *> = handler.handle(head, args, client)
+        val res: ActionResult<String, *> = handler.handle(head, args)
         val response = JsonObject(
             "type" to JsonString("response"),
+            "clientId" to JsonNumber(clientId),
             "succeeded" to jsonBoolean(res.succeeded),
             "message" to JsonString(res.message),
+            "data" to if (res.extra is JsonSerializable) res.extra else JsonString(res.extra.toString()),
         )
         broadcast(response)
     }

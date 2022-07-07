@@ -3,21 +3,23 @@ package io.theriverelder.novafactory
 import io.theriverelder.novafactory.data.NovaFactory
 import io.theriverelder.novafactory.data.cell.Cell
 import io.theriverelder.novafactory.data.goal.Level
+import io.theriverelder.novafactory.data.task.FactoryTask
 import io.theriverelder.novafactory.entrance.Plugin
 import io.theriverelder.novafactory.util.ActionResult
-import io.theriverelder.novafactory.util.Creator
+import io.theriverelder.novafactory.util.JsonFormattedType
 import io.theriverelder.novafactory.util.event.EventDispatcher
 import io.theriverelder.novafactory.util.io.json.*
 import io.theriverelder.novafactory.util.registry.Registry
-import io.theriverelder.novafactory.util.time.DeltaTime
 import java.io.File
 import java.io.FileWriter
 import java.io.IOException
-import java.nio.charset.Charset
+import kotlin.math.min
 
 object Game : ToJson, Persistent {
 
-    val REG_CELL = Registry<String, Creator<String, Cell>> { it.key }
+    val REG_CELL = Registry<String, JsonFormattedType<String, Cell>> { it.key }
+    val REG_LEVEL = Registry<String, JsonFormattedType<String, Level>> { it.key }
+    val REG_TASK = Registry<String, JsonFormattedType<String, FactoryTask>> { it.key }
 
     val onPreTickHandlers = EventDispatcher<Game>()
     val onPostTickHandlers = EventDispatcher<Game>()
@@ -34,15 +36,17 @@ object Game : ToJson, Persistent {
 
     fun tick() {
         onPreTickHandlers.emit(this)
+
         if (running) {
             time++
             factory.tick()
+            level?.tick()
 
-            val goal = level
-            if (goal != null) {
-                val pack = factory.output()
-                goal.input(factory, pack)
-            }
+            val price = level?.price ?: 0.0
+            val requirement = level?.requirement ?: 0.0
+            val consumed = min(factory.buttery, requirement);
+            factory.buttery -= consumed
+            factory.account += consumed * price
         }
         onPostTickHandlers.emit(this)
     }
@@ -72,13 +76,16 @@ object Game : ToJson, Persistent {
             "time" to JsonNumber(time),
             "running" to JsonBoolean(running),
             "level" to (level?.toJson() ?: JSON_NULL),
-            "levelInfo" to JsonString(level?.getInfo(factory) ?: ""),
         )
     }
 
     override fun read(json: JsonObject) {
         time = json["time"].number.toLong()
         factory.read(json["factory"].obj)
+        val levelJson = json.tryGet("level")?.obj ?: return
+        val level = REG_LEVEL[levelJson["id"].string].create()
+        level.read(levelJson)
+        level.setup(factory)
     }
 
     override fun write(): JsonObject {

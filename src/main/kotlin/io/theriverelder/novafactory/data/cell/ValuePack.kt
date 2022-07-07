@@ -46,4 +46,6 @@ data class ValuePack(
         rest -= consumed
         return this
     }
+
+    fun consumeAll(): ValuePack = consume(amount)
 }

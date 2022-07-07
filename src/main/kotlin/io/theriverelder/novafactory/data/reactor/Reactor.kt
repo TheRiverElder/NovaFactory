@@ -5,12 +5,15 @@ import io.theriverelder.novafactory.data.NovaFactory
 import io.theriverelder.novafactory.data.cell.Cell
 import io.theriverelder.novafactory.data.cell.ValuePack
 import io.theriverelder.novafactory.interfaces.Tickable
+import io.theriverelder.novafactory.interfaces.Unique
 import io.theriverelder.novafactory.ui.Vec2
 import io.theriverelder.novafactory.util.ActionResult
 import io.theriverelder.novafactory.util.io.json.*
+import io.theriverelder.novafactory.util.persistence.restoreCell
 
-class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Tickable, ToJson, Persistent {
+class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Tickable, ToJson, Persistent, Unique<Int> {
 
+    override var uid: Int = -1
     val running: Boolean get() = status.tickable
     var width: Int = width
         private set
@@ -82,10 +85,11 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
             liquidPerCellCache = liquidAmount / slots.size
             slots.forEach { it.liquidAmount = liquidPerCellCache }
 
-            with(slots.copyOf()) {
-                shuffle()
-                forEach { it.tick() }
-            }
+//            with(slots.copyOf()) {
+//                shuffle()
+//                forEach { it.tick() }
+//            }
+            slots.forEach { it.tick() }
         }
 
         wall.tick()
@@ -171,6 +175,7 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
 
     override fun toJson(): JsonSerializable {
         return JsonObject(
+            "uid" to JsonNumber(uid),
             "size" to JsonNumber(size),
             "width" to JsonNumber(width),
             "height" to JsonNumber(height),
@@ -184,16 +189,13 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
     }
 
     override fun read(json: JsonObject) {
+        uid = json["uid"].number.toInt()
         width = json["width"].number.toInt()
         height = json["height"].number.toInt()
         electricityCache = json["electricityCache"].number.toDouble()
         initSlots()
-        val cells: List<Cell?> = json["cells"].array
-            .map { it.obj }
-            .map { cellJson -> Game.REG_CELL.tryGet(cellJson["id"].string)?.create()?.also { read(cellJson) } }
-        for ((number, slot) in slots.withIndex()) {
-            slot.cell = cells[number]
-        }
+        val cells: List<Cell?> = json["cells"].array.map { it.obj }.map { restoreCell(it) }
+        slots.withIndex().forEach { it.value.cell = cells[it.index] }
         wall.read(json["wall"].obj)
         status = ReactorStatus.values()[json["status"].number.toInt()]
         breakingTemperature = json["breakingTemperature"].number.toDouble()
@@ -202,6 +204,7 @@ class Reactor(val factory: NovaFactory, width: Int = 0, height: Int = 0) : Ticka
 
     override fun write(): JsonObject {
         return JsonObject(
+            "uid" to JsonNumber(uid),
             "width" to JsonNumber(width),
             "height" to JsonNumber(height),
             "electricityCache" to JsonNumber(electricityCache),

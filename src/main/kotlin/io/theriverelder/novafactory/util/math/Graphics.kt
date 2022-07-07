@@ -10,7 +10,7 @@ fun Double.toHeatColor(upLimit: Double = Double.POSITIVE_INFINITY): Color {
 }
 
 fun Double.toHeatColorInfinity(scalar: Double = 1.0): Color {
-    val v = floor(tanh(this * scalar) * 0x0100).toInt()
+    val v = floor(tanh(this * scalar) * 0x0100).toInt().clamp(0, 0xFF)
     return Color(v, 0, 0xFF - v, 0xFF)
 }
 

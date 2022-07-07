@@ -2,11 +2,15 @@ package io.theriverelder.novafactory.data.reactor
 
 import io.theriverelder.novafactory.data.cell.Cell
 import io.theriverelder.novafactory.data.cell.ValuePack
+import io.theriverelder.novafactory.util.JsonFormattedType
+import io.theriverelder.novafactory.util.io.json.GenericType
 import io.theriverelder.novafactory.util.io.json.JsonNumber
 import io.theriverelder.novafactory.util.io.json.JsonObject
 import io.theriverelder.novafactory.util.io.json.number
 
-class WallCell(init: WallCell.() -> Unit = {}) : Cell() {
+val WALL_TYPE = JsonFormattedType<String, Cell>("wall") { WallCell() }
+
+class WallCell(init: WallCell.() -> Unit = {}) : Cell(WALL_TYPE) {
 
     init {
         init()

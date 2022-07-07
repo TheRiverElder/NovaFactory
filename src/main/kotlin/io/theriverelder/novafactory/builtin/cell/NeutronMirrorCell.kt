@@ -2,35 +2,25 @@ package io.theriverelder.novafactory.builtin.cell
 
 import io.theriverelder.novafactory.data.cell.Cell
 import io.theriverelder.novafactory.data.cell.ValuePack
-import io.theriverelder.novafactory.util.io.json.JsonNumber
-import io.theriverelder.novafactory.util.io.json.JsonObject
-import io.theriverelder.novafactory.util.io.json.number
-import io.theriverelder.novafactory.util.io.json.unaryPlus
+import io.theriverelder.novafactory.util.io.json.*
 
-class NeutronMirrorCell(init: NeutronMirrorCell.() -> Unit = {}) : Cell() {
+class NeutronMirrorCell(type: GenericType<String, Cell>, init: NeutronMirrorCell.() -> Unit = {}) : Cell(type) {
 
     override var mass: Double = 1000.0
     override var heat: Double = 0.0
     override var heatTransferFactor: Double = 0.0
     override var heatCapacity: Double = 1.0
-//    var radiation: Double = 0.0
 
     override fun read(json: JsonObject) {
+        super.read(json)
         mass = json["mass"].number.toDouble()
-        heat = json["heat"].number.toDouble()
         heatTransferFactor = json["heatTransferFactor"].number.toDouble()
         heatCapacity = json["heatCapacity"].number.toDouble()
-//        radiation = json["radiation"].number.toDouble()
     }
 
     override fun write(): JsonObject {
-        return JsonObject(
-            "id" to +javaClass.simpleName,
+        return super.write().concat(
             "mass" to JsonNumber(mass),
-            "heat" to JsonNumber(heat),
-            "heatTransferFactor" to JsonNumber(heatTransferFactor),
-            "heatCapacity" to JsonNumber(heatCapacity),
-//            "radiation" to JsonNumber(radiation),
         )
     }
 
@@ -40,24 +30,9 @@ class NeutronMirrorCell(init: NeutronMirrorCell.() -> Unit = {}) : Cell() {
 
     override fun onReceive(valuePack: ValuePack) {
         when (valuePack.valueType) {
-            "radiation" -> valuePack.reject()
+            "neutron" -> valuePack.reject()
             else -> super.onReceive(valuePack)
         }
-    }
-
-    override fun onAccept(valuePack: ValuePack) {
-        when (valuePack.valueType) {
-//            "radiation" -> radiation += valuePack.amount
-            else -> super.onAccept(valuePack)
-        }
-    }
-
-    override fun onRequest(valuePack: ValuePack): ValuePack {
-        TODO("Not yet implemented")
-    }
-
-    override fun onTick() {
-
     }
 
 }

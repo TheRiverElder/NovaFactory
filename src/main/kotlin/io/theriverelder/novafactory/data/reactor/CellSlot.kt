@@ -59,7 +59,7 @@ class CellSlot(
         val cell = this.cell
         if (cell != null) {
             cell.slot = this
-            cell.onTick()
+            cell.tick()
             spreadHeat()
 
             if (liquidAmount > 0) {
@@ -76,21 +76,15 @@ class CellSlot(
         }
     }
 
-    val relativeSlots: List<CellSlot>
-        get() = reactor.getRelativeSlots(number)
+    val relativeSlots: List<CellSlot> get() = reactor.getRelativeSlots(number)
 
-    fun receive(valuePack: ValuePack) {
-        cell?.receive(valuePack) // ?: valuePack.reject()
-    }
+    fun receive(valuePack: ValuePack) = cell?.receive(valuePack)
 
-    fun accept(valuePack: ValuePack) {
-        cell?.accept(valuePack)
-    }
+    fun accept(valuePack: ValuePack) = cell?.accept(valuePack)
 
 
-    fun request(valuePack: ValuePack): ValuePack {
-        return cell?.request(valuePack) ?: valuePack.redirect(0.0)
-    }
+
+    fun request(valuePack: ValuePack): ValuePack = cell?.request(valuePack) ?: valuePack.redirect(0.0)
 
     fun spreadHeat() {
         cell ?: return

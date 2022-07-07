@@ -23,7 +23,7 @@ val H_CENTER = HorizontalAlign.CENTER
 
 enum class Brush {
     CLICK,
-    NULL,
+    PULL,
     USE,
 }
 
@@ -38,23 +38,25 @@ fun initializeUI(): RootComponent {
     val reactorGap = 10
 
     var brush: Brush = Brush.CLICK
-    var storageIndex = -1
+    var storageItemUid = -1
 
     var watchingCellSlot: CellSlot? = null
 
-    fun sellElectricity() {
-        Game.level?.input(Game.factory, Game.factory.output(Game.factory.buttery))
-    }
-
-    fun onClickSlot(slot: CellSlot, reactorIndex: Int) {
+    fun onClickSlot(slot: CellSlot, reactorUid: Int) {
         when (brush) {
             Brush.CLICK -> watchingCellSlot = slot
-            Brush.NULL -> {
-                val res = wrap { Game.factory.pull(reactorIndex, slot.number) }
+            Brush.PULL -> {
+                val res = wrap {
+                    slot.depth = 0.0
+                    Game.factory.pull(reactorUid, slot.number)
+                }
                 println("${res.succeeded}:${res.message}")
             }
             else -> {
-                val res = wrap { Game.factory.use(storageIndex, reactorIndex, slot.number) }
+                val res = wrap { Game.factory.use(reactorUid, slot.number, storageItemUid) }
+                if (res.succeeded) {
+                    slot.depth = 1.0
+                }
                 println("${res.succeeded}:${res.message}")
             }
         }
@@ -109,7 +111,7 @@ fun initializeUI(): RootComponent {
             listView(Direction.VERTICAL) {
                 val brushStr: String = when (brush) {
                     Brush.USE -> "<USE>"
-                    Brush.NULL -> "<Null>"
+                    Brush.PULL -> "<PULL>"
                     Brush.CLICK -> "<Click>"
                 }
                 text("当前时间: ${(Game.time).shortenTime()}",
@@ -122,9 +124,6 @@ fun initializeUI(): RootComponent {
                     """.trimIndent().replace("\n", ", "),
                     verticalAlign = VerticalAlign.TOP, horizontalAlign = HorizontalAlign.LEFT
                 )
-                text(Game.level?.getInfo(Game.factory) ?: "<无关卡>",
-                    verticalAlign = VerticalAlign.TOP, horizontalAlign = HorizontalAlign.LEFT
-                )
 
                 // 操作按钮
                 listView(Direction.HORIZONTAL) {
@@ -133,7 +132,6 @@ fun initializeUI(): RootComponent {
                     box(50, 20, bgSwitchOnOff, onClick = { Game.running = !running }) { text(if (running) "ON" else "OFF") }
                     box(50, 20, ColorBackground(Color.YELLOW), onClick = { printData() }) { text("Print") }
                     box(50, 20, ColorBackground(Color.YELLOW), onClick = { saveData() }) { text("Save") }
-                    box(50, 20, ColorBackground(Color.YELLOW), onClick = { sellElectricity() }) { text("Sell") }
                 }
 
                 var maxWidth = (Game.factory.shop.size + 2) * size
@@ -161,7 +159,7 @@ fun initializeUI(): RootComponent {
                     for ((index, si) in Game.factory.shop.withIndex()) {
                         box((size * 1.5).toInt(), size, ColorBackground(Color.WHITE), onClick = { onClickShop(index) }) {
                             at(halfSize, halfSize, text(
-                                (si.tip.explode(10) + "$${si.price}").joinToString("\n"),
+                                (si.name.explode(10) + "$${si.price}").joinToString("\n"),
                                 verticalAlign = V_CENTER, horizontalAlign = H_CENTER
                             ))
                         }
@@ -188,7 +186,7 @@ fun initializeUI(): RootComponent {
                                 val color = if (slot.cell != null) t.toHeatColorInfinity(1 / 1000.0) else Color.BLACK
                                 at(slot.x * size, slot.y * size, box(size, size, background = ColorBackground(color),
                                     borderColor = if (slot == watchingCellSlot) Color.WHITE else null,
-                                    onClick = { onClickSlot(slot, index) }
+                                    onClick = { onClickSlot(slot, r.uid) }
                                 ) {
                                     at(size / 2, size / 2, text(t.toFixed(2), Color.WHITE, V_CENTER, H_CENTER))
                                 })
@@ -202,8 +200,8 @@ fun initializeUI(): RootComponent {
                 // 仓库
                 listView(Direction.VERTICAL) {
                     for ((index, item) in Game.factory.storage.withIndex()) {
-                        box(300, size / 3, ColorBackground(if (storageIndex == index) Color.GRAY else Color.WHITE),
-                            onClick = { storageIndex = index }) {
+                        box(300, size / 3, ColorBackground(if (storageItemUid == item.uid) Color.GRAY else Color.WHITE),
+                            onClick = { storageItemUid = item.uid }) {
                             text(
                                 "【${item.javaClass.simpleName}】",
                                 verticalAlign = VerticalAlign.TOP, horizontalAlign = HorizontalAlign.LEFT,
@@ -242,10 +240,15 @@ fun getCellInfoText(cell: Cell): String {
         """.trimIndent()
         is NuclearRodCell -> """
             【NuclearRodCell】
-            half-life: ${cell.fissionRate.shorten()}, 
-            nuclear: ${cell.nuclear.shorten()}, 
-            non-nuclear: ${cell.nonNuclear.shorten()}, 
-            radiation: ${cell.radiation.shorten()}, 
+            multiplier: ${cell.multiplier.shorten()}, 
+            fissionCost: ${cell.fissionCost.shorten(5)}, 
+            fissionRatio: ${cell.fissionRatio.shorten(10)}, 
+            chanceToHit: ${cell.chanceToHit.shorten()}, 
+            chanceToSlow: ${cell.chanceToSlow.shorten()}, 
+            chanceToEscape: ${cell.chanceToEscape.shorten()}, 
+            nuclear: ${cell.nuclear.shorten(5)}, 
+            non-nuclear: ${cell.nonNuclear.shorten(5)}, 
+            neutron: ${cell.neutron.shorten(5)}, 
         """.trimIndent()
         is NeutronMirrorCell -> """
             【NeutronMirrorCell】 

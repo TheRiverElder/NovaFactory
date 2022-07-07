@@ -24,6 +24,7 @@ class JsonObject(vararg val value: Pair<String, JsonSerializable>): JsonSerializ
     }
 
     operator fun get(key: String): JsonSerializable = map[key] ?: throw Exception("不存在键：$key")
+    fun tryGet(key: String): JsonSerializable? = map.getOrDefault(key, null)
 
     fun concat(vararg newValue: Pair<String, JsonSerializable>): JsonObject {
         return JsonObject(*(map.entries.map { it.toPair() }.toTypedArray() + newValue))

@@ -1,12 +1,18 @@
 package io.theriverelder.novafactory.builtin.history
 
 import io.theriverelder.novafactory.util.io.json.*
+import io.theriverelder.novafactory.util.math.ensureLinkedListSizeAbandonHeads
 import java.util.*
 
 class DataSource(initialRecords: List<DataRecord>) {
     val records: LinkedList<DataRecord> = LinkedList(initialRecords)
     private var windowStart: Int = 0 // inclusive
     private var windowEnd: Int = 0 // exclusive
+
+    fun addRecord(record: DataRecord) {
+        records.add(record)
+        records.ensureLinkedListSizeAbandonHeads(windowEnd - windowStart)
+    }
 
     fun setWindow(start: Int, end: Int) {
         windowStart = start
@@ -27,10 +33,7 @@ class DataSource(initialRecords: List<DataRecord>) {
 
 data class DataRecord(val xLabel: Long, val values: List<Double>) : ToJson {
     override fun toJson(): JsonSerializable {
-        return JsonObject(
-            "xLabel" to JsonNumber(xLabel),
-            "values" to JsonArray(values.map { JsonNumber(it) }),
-        )
+        return JsonArray(listOf(xLabel, *values.toTypedArray()).map { JsonNumber(it) } )
     }
 
 }

@@ -2,12 +2,9 @@ package io.theriverelder.novafactory.builtin.cell
 
 import io.theriverelder.novafactory.data.cell.Cell
 import io.theriverelder.novafactory.data.cell.ValuePack
-import io.theriverelder.novafactory.util.io.json.JsonNumber
-import io.theriverelder.novafactory.util.io.json.JsonObject
-import io.theriverelder.novafactory.util.io.json.number
-import io.theriverelder.novafactory.util.io.json.unaryPlus
+import io.theriverelder.novafactory.util.io.json.*
 
-class SlowingRodCell(init: SlowingRodCell.() -> Unit = {}) : Cell() {
+class SlowingRodCell(type: GenericType<String, Cell>, init: SlowingRodCell.() -> Unit = {}) : Cell(type) {
 
     override var mass: Double = 1000.0
     override var heat: Double = 0.0
@@ -16,20 +13,16 @@ class SlowingRodCell(init: SlowingRodCell.() -> Unit = {}) : Cell() {
     var slowRate: Double = 0.0
 
     override fun read(json: JsonObject) {
+        super.read(json)
         mass = json["mass"].number.toDouble()
-        heat = json["heat"].number.toDouble()
         heatTransferFactor = json["heatTransferFactor"].number.toDouble()
         heatCapacity = json["heatCapacity"].number.toDouble()
         slowRate = json["slowRate"].number.toDouble()
     }
 
     override fun write(): JsonObject {
-        return JsonObject(
-            "id" to +javaClass.simpleName,
+        return super.write().concat(
             "mass" to JsonNumber(mass),
-            "heat" to JsonNumber(heat),
-            "heatTransferFactor" to JsonNumber(heatTransferFactor),
-            "heatCapacity" to JsonNumber(heatCapacity),
             "slowRate" to JsonNumber(slowRate),
         )
     }
