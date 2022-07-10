@@ -13,7 +13,7 @@ import io.theriverelder.novafactory.util.event.EventHandler
 
 fun initializeTestGame() {
     Game.use(BuiltinPlugin(), WebServerPlugin())
-    Game.start(TestLevel(1.5e10, 1.5e10, 0.03))
+    Game.start(TestLevel(5.5e5, 3.5e5, 0.03))
 }
 
 class TestLevel(daytimeConsumption: Double, nightConsumption: Double, price: Double) :
@@ -30,8 +30,8 @@ class TestLevel(daytimeConsumption: Double, nightConsumption: Double, price: Dou
     private fun prepareTestReactor(factory: NovaFactory) {
         val reactor = Reactor(factory, 5, 5)
         reactor.uid = factory.reactorUidGen.gen()
-        reactor.breakingTemperature = 8000.0
-        reactor.brokenTemperature = 1000.0
+        reactor.breakingTemperature = 2000.0
+        reactor.brokenTemperature = 3000.0
 
         listOf(7, 11, 13, 17).forEach { reactor.getCellSlot(it).cell = CP_NUCLEAR_ROD.create() }
 //        listOf(6, 18).forEach { reactor.getCellSlot(it).cell = CP_RADIATION_SOURCE.create() }
@@ -74,10 +74,10 @@ class TestLevel(daytimeConsumption: Double, nightConsumption: Double, price: Dou
             NuclearRodCell(Game.REG_CELL["NuclearRodCell"]) {
                 multiplier = 2.5
                 fissionCost = 1.112650056e-6
-                fissionRatio = 2.196450843e-10
-                chanceToHit = 0.2
-                chanceToSlow = 0.2
-                chanceToEscape = 0.2
+                fissionRatio = 2.196450843e-8
+                chanceToHit = 0.3
+                chanceToSlow = 0.1
+                chanceToEscape = 0.6
                 nuclear = 100000.0
                 nonNuclear = 900000.0
                 heatTransferFactor = 0.75

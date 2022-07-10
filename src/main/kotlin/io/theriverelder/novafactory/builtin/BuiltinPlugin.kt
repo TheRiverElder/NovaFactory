@@ -85,7 +85,7 @@ class FactoryDataRecorder(
 
         val history = History.factoryHistory
 
-        history.addRecord(DataRecord(now, listOf(deltaElectricity)))
+        history.addRecord(DataRecord(now, listOf(deltaElectricity, Game.level?.requirement ?: 0.0)))
 
         fileLogger?.write("$now\t$deltaElectricity\n")
         fileLogger?.flush()
