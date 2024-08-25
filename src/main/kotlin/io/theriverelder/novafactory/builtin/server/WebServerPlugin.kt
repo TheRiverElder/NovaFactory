@@ -8,19 +8,15 @@ import io.theriverelder.novafactory.builtin.task.ProgramTask
 import io.theriverelder.novafactory.data.getReactor
 import io.theriverelder.novafactory.data.getSlot
 import io.theriverelder.novafactory.data.reactor.CellSlot
-import io.theriverelder.novafactory.data.reactor.Reactor
+import io.theriverelder.novafactory.data.reactor.RectangleReactor
 import io.theriverelder.novafactory.entrance.Plugin
-import io.theriverelder.novafactory.util.ActionResult
 import io.theriverelder.novafactory.util.event.EventHandler
 import io.theriverelder.novafactory.util.io.json.*
-import io.theriverelder.novafactory.util.persistence.parseTask
-import io.theriverelder.novafactory.util.persistence.restoreTask
 import io.theriverelder.novafactory.util.wrap
 import kotlinx.coroutines.runBlocking
-import java.util.Objects
 
 
-fun getReactor(args: JsonObject): Reactor = Game.factory.getReactor(args["reactorUid"].number.toInt())
+fun getReactor(args: JsonObject): RectangleReactor = Game.factory.getReactor(args["reactorUid"].number.toInt())
 
 fun getSlot(args: JsonObject): CellSlot =
     Game.factory.getSlot(args["reactorUid"].number.toInt(), args["slotNumber"].number.toInt())

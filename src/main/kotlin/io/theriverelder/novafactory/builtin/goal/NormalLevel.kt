@@ -57,7 +57,7 @@ open class NormalLevel(
         )
     }
 
-    override fun onTick() {
+    override fun tick() {
         val timeOfDay = Game.time % TICKS_PER_DAY
         requirement = nightConsumption + (daytimeConsumption - nightConsumption) * 2 * abs(timeOfDay / TICKS_PER_DAY.toDouble() - 0.5)
     }

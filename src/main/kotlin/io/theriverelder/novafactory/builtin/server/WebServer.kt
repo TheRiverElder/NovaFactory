@@ -33,18 +33,19 @@ object WebServer {
                 call.respondText("Please use WebSocket instead.")
             }
             webSocket("/") {
-                println("client in: ${this.hashCode()}")
+                val id = this.hashCode().toUInt().toString(16).padStart(8, '0')
+                println("client in: $id")
                 clients.add(this)
                 for (frame in incoming) {
                     val str = frame.data.decodeToString()
-//                    println(str)
+                    println(str)
                     val json = deserialize(StringReader(str))
                     if (json != null) {
                         handleCommand(json.obj)
                     }
                 }
                 clients.remove(this)
-                println("client out: ${this.hashCode()}")
+                println("client out: $id")
             }
         }
     }

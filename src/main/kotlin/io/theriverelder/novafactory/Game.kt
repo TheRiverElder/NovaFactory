@@ -48,6 +48,7 @@ object Game : ToJson, Persistent {
             factory.buttery -= consumed
             factory.account += consumed * price
         }
+
         onPostTickHandlers.emit(this)
     }
 

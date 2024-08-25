@@ -12,6 +12,10 @@ class SlowingRodCell(type: GenericType<String, Cell>, init: SlowingRodCell.() ->
     override var heatCapacity: Double = 1.0
     var slowRate: Double = 0.0
 
+    init {
+        init()
+    }
+
     override fun read(json: JsonObject) {
         super.read(json)
         mass = json["mass"].number.toDouble()
@@ -27,16 +31,7 @@ class SlowingRodCell(type: GenericType<String, Cell>, init: SlowingRodCell.() ->
         )
     }
 
-
-    init {
-        init()
-    }
-
-    override fun onRequest(valuePack: ValuePack): ValuePack {
-        TODO("Not yet implemented")
-    }
-
-    override fun onReceive(valuePack: ValuePack) {
+    override fun receive(valuePack: ValuePack) {
         when (valuePack.valueType) {
             "radiation" -> valuePack.consume(slowRate * valuePack.amount)
             "heat" -> {
@@ -44,10 +39,7 @@ class SlowingRodCell(type: GenericType<String, Cell>, init: SlowingRodCell.() ->
                 heat += p
                 valuePack.consume(p)
             }
-            else -> super.onReceive(valuePack)
+            else -> super.receive(valuePack)
         }
-    }
-
-    override fun onTick() {
     }
 }

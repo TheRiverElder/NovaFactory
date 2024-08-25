@@ -9,6 +9,7 @@ import io.theriverelder.novafactory.builtin.history.History
 import io.theriverelder.novafactory.builtin.task.*
 import io.theriverelder.novafactory.data.NovaFactory
 import io.theriverelder.novafactory.data.reactor.Reactor
+import io.theriverelder.novafactory.data.reactor.RectangleReactor
 import io.theriverelder.novafactory.entrance.Plugin
 import io.theriverelder.novafactory.util.JsonFormattedType
 import io.theriverelder.novafactory.util.event.EventHandler

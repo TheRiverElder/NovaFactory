@@ -5,9 +5,9 @@ import io.theriverelder.novafactory.data.cell.Cell
 import io.theriverelder.novafactory.data.cell.CellPrototype
 import io.theriverelder.novafactory.data.reactor.CellSlot
 import io.theriverelder.novafactory.data.reactor.Reactor
+import io.theriverelder.novafactory.data.reactor.RectangleReactor
 import io.theriverelder.novafactory.data.task.FactoryTask
 import io.theriverelder.novafactory.interfaces.Tickable
-import io.theriverelder.novafactory.interfaces.findByUid
 import io.theriverelder.novafactory.interfaces.removeByUid
 import io.theriverelder.novafactory.interfaces.tryFindByUid
 import io.theriverelder.novafactory.util.event.EventDispatcher
@@ -57,13 +57,15 @@ class NovaFactory : Tickable, ToJson, Persistent {
         )
     }
 
-    val reactors: MutableList<Reactor> = ArrayList()
+    private val reactorList: MutableList<RectangleReactor> = ArrayList()
 
-    fun addReactor(reactor: Reactor) {
-        reactors.add(reactor)
+    val reactors: List<RectangleReactor>; get() = ArrayList(reactorList)
+
+    fun addReactor(reactor: RectangleReactor) {
+        reactorList.add(reactor)
     }
 
-    override fun onTick() {
+    override fun tick() {
         onPreTickHandlers.emit(this)
 
         executeTasks()
@@ -71,12 +73,15 @@ class NovaFactory : Tickable, ToJson, Persistent {
         var lastGenElectricity = 0.0
         for (reactor in reactors) {
             onReactorPreTickHandlers.emit(reactor)
-            reactor.tick()
-            onReactorPostTickHandlers.emit(reactor)
 
+            reactor.tick()
             lastGenElectricity += reactor.electricityCache
             reactor.electricityCache = 0.0
+
+            onReactorPostTickHandlers.emit(reactor)
+
         }
+
         buttery += lastGenElectricity
         this.lastGenElectricity = lastGenElectricity
 
@@ -92,8 +97,8 @@ class NovaFactory : Tickable, ToJson, Persistent {
         account = json["account"].number.toDouble()
         lastGenElectricity = json["lastGenElectricity"].number.toDouble()
 
-        reactors.clear()
-        reactors.addAll(json["reactors"].array.map { restoreReactor(it.obj, this) })
+        reactorList.clear()
+        reactorList.addAll(json["reactors"].array.map { restoreReactor(it.obj, this) })
 
         shop.clear()
         shop.addAll(json["shop"].array.map { restoreCellPrototype(it.obj) })
@@ -162,22 +167,24 @@ class NovaFactory : Tickable, ToJson, Persistent {
     }
 
     fun turn(newStatus: Boolean) {
-        val action = if (newStatus) "开启" else "暂停"
-        if (newStatus == Game.running) throw Exception("游戏已经${action}")
+        if (newStatus == Game.running) throw Exception("游戏已经${if (newStatus) "开启" else "暂停"}")
         Game.running = newStatus
     }
 
-    val tasks: MutableList<FactoryTask> = ArrayList()
+    private val tasks: MutableList<FactoryTask> = ArrayList()
 
-    fun executeTasks() {
+    private fun executeTasks() {
         var i = 0
         while (tasks.size > i) {
             val task = tasks[i]
+
             if (task.finished) {
                 tasks.removeAt(i)
                 continue
             }
+
             task.tick()
+
             if (task.finished) {
                 tasks.removeAt(i)
             } else {
@@ -186,15 +193,15 @@ class NovaFactory : Tickable, ToJson, Persistent {
         }
     }
 
-    fun addTask(task: FactoryTask) {
+    public fun addTask(task: FactoryTask) {
         tasks.add(task)
     }
 
-    fun addTasks(newTasks: Iterable<FactoryTask>) {
+    public fun addTasks(newTasks: Iterable<FactoryTask>) {
         tasks.addAll(newTasks)
     }
 
-    fun removeTask(task: FactoryTask) {
+    public fun removeTask(task: FactoryTask) {
         tasks.remove(task)
     }
 
@@ -213,11 +220,10 @@ fun NovaFactory.getStorageItem(uid: Int): Cell {
     return storage.tryFindByUid(uid) ?: throw Exception("未在仓库找到位置在[${uid}]的物品")
 }
 
-fun NovaFactory.getReactor(uid: Int): Reactor {
+fun NovaFactory.getReactor(uid: Int): RectangleReactor {
     return reactors.tryFindByUid(uid) ?: throw Exception("未找到位置在[${uid}]的反应堆")
 }
 
 fun NovaFactory.getSlot(reactorUid: Int, slotNumber: Int): CellSlot {
-    val reactor = getReactor(reactorUid)
-    return reactor.tryGetCellSlot(slotNumber) ?: throw Exception("未找到编号为[${slotNumber}]的物品槽")
+    return getReactor(reactorUid).tryGetCellSlot(slotNumber) ?: throw Exception("未找到编号为[${slotNumber}]的物品槽")
 }

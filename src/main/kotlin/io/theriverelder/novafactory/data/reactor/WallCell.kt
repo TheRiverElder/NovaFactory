@@ -21,11 +21,7 @@ class WallCell(init: WallCell.() -> Unit = {}) : Cell(WALL_TYPE) {
     override var heatTransferFactor: Double = 0.0
     override var heatCapacity: Double = 0.0
 
-    override fun onRequest(valuePack: ValuePack): ValuePack {
-        TODO("Not yet implemented")
-    }
-
-    override fun onTick() {
+    override fun tick() {
         heat *= 0.6
     }
 

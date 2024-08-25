@@ -28,10 +28,10 @@ class NeutronMirrorCell(type: GenericType<String, Cell>, init: NeutronMirrorCell
         init()
     }
 
-    override fun onReceive(valuePack: ValuePack) {
+    override fun receive(valuePack: ValuePack) {
         when (valuePack.valueType) {
             "neutron" -> valuePack.reject()
-            else -> super.onReceive(valuePack)
+            else -> super.receive(valuePack)
         }
     }
 

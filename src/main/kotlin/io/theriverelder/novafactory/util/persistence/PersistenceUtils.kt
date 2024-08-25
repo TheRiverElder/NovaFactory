@@ -4,9 +4,8 @@ import io.theriverelder.novafactory.Game
 import io.theriverelder.novafactory.data.NovaFactory
 import io.theriverelder.novafactory.data.cell.Cell
 import io.theriverelder.novafactory.data.cell.CellPrototype
-import io.theriverelder.novafactory.data.reactor.Reactor
+import io.theriverelder.novafactory.data.reactor.RectangleReactor
 import io.theriverelder.novafactory.data.task.FactoryTask
-import io.theriverelder.novafactory.util.io.json.JsonArray
 import io.theriverelder.novafactory.util.io.json.JsonObject
 import io.theriverelder.novafactory.util.io.json.string
 import io.theriverelder.novafactory.util.math.UidGen
@@ -29,8 +28,8 @@ fun restoreCellPrototype(json: JsonObject): CellPrototype {
     cp.read(json)
     return cp
 }
-fun restoreReactor(json: JsonObject, factory: NovaFactory): Reactor {
-    val reactor = Reactor(factory)
+fun restoreReactor(json: JsonObject, factory: NovaFactory): RectangleReactor {
+    val reactor = RectangleReactor(factory)
     reactor.read(json)
     return reactor
 }

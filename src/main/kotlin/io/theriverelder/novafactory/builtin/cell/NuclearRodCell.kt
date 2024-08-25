@@ -49,7 +49,6 @@ class NuclearRodCell(type: GenericType<String, Cell>, init: NuclearRodCell.() ->
         heatTransferFactor = json["heatTransferFactor"].number.toDouble()
         heatCapacity = json["heatCapacity"].number.toDouble()
 
-
         multiplier = json["multiplier"].number.toDouble()
         fissionCost = json["fissionCost"].number.toDouble()
         fissionRatio = json["fissionRatio"].number.toDouble()
@@ -79,32 +78,30 @@ class NuclearRodCell(type: GenericType<String, Cell>, init: NuclearRodCell.() ->
         init()
     }
 
-    override fun onReceive(valuePack: ValuePack) {
+    override fun receive(valuePack: ValuePack) {
         when (valuePack.valueType) {
             "neutron" -> accept(valuePack)
-            else -> super.onReceive(valuePack)
+            else -> super.receive(valuePack)
         }
     }
 
-    override fun onAccept(valuePack: ValuePack) {
+    override fun accept(valuePack: ValuePack) {
         when (valuePack.valueType) {
             "neutron" -> {
                 neutron += valuePack.amount
                 valuePack.consumeAll()
             }
-            else -> super.onAccept(valuePack)
+            else -> super.accept(valuePack)
         }
     }
 
-    override fun onRequest(valuePack: ValuePack): ValuePack {
-        TODO("Not yet implemented")
-    }
-
-    override fun onTick() {
+    override fun tick() {
         val slot = slot!!
+
         val naturalFission = (nuclear * fissionRatio * slot.depth).clamp(0.0, nuclear)
         nuclear -= naturalFission
         neutron += naturalFission
+
         val neutron = this.neutron * slot.depth
         val neutronToHit = neutron * chanceToHit
         val neutronToSlow = neutron * chanceToSlow

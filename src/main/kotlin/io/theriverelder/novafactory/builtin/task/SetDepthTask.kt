@@ -44,7 +44,7 @@ class SetDepthTask(var reactorUid: Int = -1, var slotNumber: Int = -1, var newDe
         )
     }
 
-    override fun onTick() {
+    override fun tick() {
         if (!finished) {
             val slot = Game.factory.getSlot(reactorUid, slotNumber)
             val distance = newDepth - slot.depth

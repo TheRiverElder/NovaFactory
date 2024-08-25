@@ -29,7 +29,7 @@ class ProgramTask(tasks: List<FactoryTask> = emptyList()) : FactoryTask(TYPE_TAS
         )
     }
 
-    override fun onTick() {
+    override fun tick() {
         val task = tasks.getOrNull(0)
         if (task == null) {
             finished = true

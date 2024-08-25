@@ -8,7 +8,6 @@ import io.theriverelder.novafactory.util.math.clamp
 
 class GeneratorCell(type: GenericType<String, Cell>, init: GeneratorCell.() -> Unit = {}) : Cell(type) {
 
-
     override var mass: Double = 1000.0
     override var heat: Double = 0.0
     override var heatTransferFactor: Double = 0.0
@@ -34,7 +33,14 @@ class GeneratorCell(type: GenericType<String, Cell>, init: GeneratorCell.() -> U
         init()
     }
 
-    override fun onTick() {
+    override fun receive(valuePack: ValuePack) {
+        val slot = slot ?: return super.receive(valuePack)
+        if (valuePack.valueType != "heat") return super.receive(valuePack)
+        slot.reactor.electricityCache += valuePack.consumes(valuePack.amount * convertRate)
+        super.receive(valuePack)
+    }
+
+    override fun tick() {
         val slot = slot!!
 
         val rate = (slot.temperature.ease0to1(1 / 3000.0) * convertRate).clamp(0.0, 1.0)

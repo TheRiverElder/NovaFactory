@@ -3,12 +3,10 @@ package io.theriverelder.novafactory
 import io.theriverelder.novafactory.builtin.BuiltinPlugin
 import io.theriverelder.novafactory.builtin.cell.*
 import io.theriverelder.novafactory.builtin.goal.NormalLevel
-import io.theriverelder.novafactory.builtin.history.DataRecord
-import io.theriverelder.novafactory.builtin.history.History
 import io.theriverelder.novafactory.builtin.server.WebServerPlugin
 import io.theriverelder.novafactory.data.NovaFactory
 import io.theriverelder.novafactory.data.cell.CellPrototype
-import io.theriverelder.novafactory.data.reactor.Reactor
+import io.theriverelder.novafactory.data.reactor.RectangleReactor
 import io.theriverelder.novafactory.util.event.EventHandler
 
 fun initializeTestGame() {
@@ -28,7 +26,7 @@ class TestLevel(daytimeConsumption: Double, nightConsumption: Double, price: Dou
     }
 
     private fun prepareTestReactor(factory: NovaFactory) {
-        val reactor = Reactor(factory, 5, 5)
+        val reactor = RectangleReactor(factory, 5, 5)
         reactor.uid = factory.reactorUidGen.gen()
         reactor.breakingTemperature = 2000.0
         reactor.brokenTemperature = 3000.0
@@ -38,7 +36,7 @@ class TestLevel(daytimeConsumption: Double, nightConsumption: Double, price: Dou
         reactor.getCellSlot(8).cell = CP_NEUTRON_MIRROR.create()
         reactor.getCellSlot(12).cell = CP_GENERATOR.create()
 
-        factory.reactors.add(reactor)
+        factory.addReactor(reactor)
     }
 
     // 初始化商店

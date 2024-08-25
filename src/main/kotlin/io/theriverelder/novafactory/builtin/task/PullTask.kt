@@ -37,7 +37,7 @@ class PullTask(var reactorUid: Int = -1, var slotNumber: Int = -1) : FactoryTask
         )
     }
 
-    override fun onTick() {
+    override fun tick() {
         if (!finished) {
             progress += 0.1
             if (progress >= 1) {

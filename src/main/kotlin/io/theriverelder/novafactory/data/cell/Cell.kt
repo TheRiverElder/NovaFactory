@@ -12,8 +12,7 @@ abstract class Cell(
     var slot: CellSlot? = null
 
     // 用于让单元吸收来自游戏其它来源的数值
-    fun receive(valuePack: ValuePack) = onReceive(valuePack)
-    open fun onReceive(valuePack: ValuePack) {
+    open fun receive(valuePack: ValuePack) {
         if (valuePack.valueType == "heat") {
             val acceptPart = valuePack.amount * heatTransferFactor
             this.heat += acceptPart
@@ -22,15 +21,13 @@ abstract class Cell(
     }
 
     // 用于强行让单元吸收数值
-    fun accept(valuePack: ValuePack) = onAccept(valuePack)
-    open fun onAccept(valuePack: ValuePack) {
+    open fun accept(valuePack: ValuePack) {
         if (valuePack.valueType == "heat") {
             this.heat += valuePack.amount
         }
     }
 
-    fun request(valuePack: ValuePack): ValuePack = onRequest(valuePack)
-    open fun onRequest(valuePack: ValuePack): ValuePack {
+    open fun request(valuePack: ValuePack): ValuePack {
         TODO()
     }
 
@@ -64,5 +61,5 @@ abstract class Cell(
         return type.restore(write())
     }
 
-    override fun onTick() { }
+    override fun tick() { }
 }

@@ -32,7 +32,7 @@ class SellTask(var storageItemUid: Int = -1) : FactoryTask(TYPE_TASK_SELL) {
         )
     }
 
-    override fun onTick() {
+    override fun tick() {
         if (!finished) {
             progress += 0.1
             if (progress >= 1) {

@@ -32,7 +32,7 @@ class RadiationSourceCell(type: GenericType<String, Cell>, init: RadiationSource
         init()
     }
 
-    override fun onTick() {
+    override fun tick() {
         val slot = slot!!
         slot.reactor.spread(slot, "neutron", radiationSpeed)
     }

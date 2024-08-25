@@ -32,7 +32,7 @@ class BuyTask(var shopItemUid: Int = -1) : FactoryTask(TYPE_TASK_BUY) {
         )
     }
 
-    override fun onTick() {
+    override fun tick() {
         if (!finished) {
             progress += 0.1
             if (progress >= 1) {

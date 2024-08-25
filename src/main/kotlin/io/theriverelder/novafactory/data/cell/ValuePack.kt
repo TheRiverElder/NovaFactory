@@ -28,7 +28,7 @@ data class ValuePack(
     }
 
     /**
-     * 该数值包是否已经被取消，若被取消则不会在链式传递中被继续传播
+     * 该数值包是否已经被取消，若被取消，则不会在链式传递中被继续传播
      * */
     var canceled: Boolean = false
 
@@ -45,6 +45,11 @@ data class ValuePack(
     fun consume(consumed: Double): ValuePack {
         rest -= consumed
         return this
+    }
+
+    fun consumes(consumed: Double): Double {
+        rest -= consumed
+        return consumed
     }
 
     fun consumeAll(): ValuePack = consume(amount)
